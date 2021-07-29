@@ -1,0 +1,6 @@
+helm3 repo add stakater https://stakater.github.io/stakater-charts
+
+helm3 upgrade reloader-release-1 stakater/reloader \
+  --install \
+  --version v0.0.75 \
+  -f values.yaml

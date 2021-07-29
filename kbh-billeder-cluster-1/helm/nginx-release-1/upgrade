@@ -1,0 +1,6 @@
+helm3 repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+
+helm3 upgrade nginx-release-1 ingress-nginx/ingress-nginx \
+  --install \
+  --version 3.12.0 \
+  -f values.yaml

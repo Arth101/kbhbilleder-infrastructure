@@ -1,0 +1,23 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: beta.kbhbilleder.deranged.dk
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt
+spec:
+  rules:
+  - host: beta.kbhbilleder.deranged.dk
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: beta-kbhbilleder-proxy
+            port:
+              number: 80
+  tls:
+  - secretName: beta.kbhbilleder.deranged.dk-tls
+    hosts:
+    - beta.kbhbilleder.deranged.dk
