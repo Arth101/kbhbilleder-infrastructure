@@ -1,0 +1,7 @@
+helm3 repo add grafana https://grafana.github.io/helm-charts
+
+helm3 upgrade loki-release-1 grafana/loki \
+  --install \
+  --namespace monitoring \
+  --version 2.6.0 \
+  -f values.yaml

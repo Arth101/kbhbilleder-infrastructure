@@ -1,0 +1,7 @@
+helm3 repo add grafana https://grafana.github.io/helm-charts
+
+helm3 upgrade promtail-release-1 grafana/promtail \
+  --install \
+  --namespace monitoring \
+  --version 3.8.1 \
+  -f values.yaml
