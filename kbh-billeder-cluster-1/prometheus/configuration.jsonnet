@@ -41,32 +41,8 @@ local kp = (
       namespace: 'monitoring',
       alertmanager+:: {
         name: 'main',
-        config: |||
-          global:
-            resolve_timeout: 5m
-          route:
-            group_by: ['job', 'namespace', 'service']
-            group_wait: 2s
-            group_interval: 2m
-            repeat_interval: 12h
-            receiver: 'deranged-slack'
-          templates:
-          - /etc/alertmanager/secrets/templates/receivers.tmpl
-        |||,
         replicas: 2,
-        volumeMounts: [
-          {
-            name: "receivers",
-            subPath: "receivers.tmpl",
-            mountPath: "/etc/alertmanager/secrets/templates/receivers.tmpl"
-          }
-        ],
-        volumes: [
-          {
-            name: "receivers",
-            secret: { secretName: "alertmanager-receivers" }
-          }
-        ]
+        configSecret: 'alertmanager-secret-config'
       },
       grafana+:: {
         config: { // http://docs.grafana.org/installation/configuration/
