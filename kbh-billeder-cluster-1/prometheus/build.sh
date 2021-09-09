@@ -12,4 +12,4 @@ rm -rf ../manifest/prometheus
 mkdir -p ../manifest/prometheus/setup
 
  # optional, but we would like to generate yaml, not json
-jsonnet -J vendor -m ../manifest/prometheus configuration.jsonnet | xargs -I{} sh -c 'cat {} | gojsontoyaml > {}.yaml; rm -f {}' -- {}
+time jsonnet -J vendor -m ../manifest/prometheus configuration.jsonnet | xargs -I{} sh -c 'cat {} | gojsontoyaml > {}.yaml; rm -f {}' -- {}
