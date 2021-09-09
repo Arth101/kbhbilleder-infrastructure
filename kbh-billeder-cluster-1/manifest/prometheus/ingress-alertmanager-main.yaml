@@ -1,0 +1,23 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/auth-realm: Authentication Required
+    nginx.ingress.kubernetes.io/auth-secret: basic-auth
+    nginx.ingress.kubernetes.io/auth-type: basic
+  name: alertmanager-main
+  namespace: monitoring
+spec:
+  rules:
+  - host: alertmanager.kbhbilleder.deranged.dk
+    http:
+      paths:
+      - backend:
+          serviceName: alertmanager-main
+          servicePort: web
+  tls:
+  - hosts:
+    - alertmanager.kbhbilleder.deranged.dk
+    secretName: alertmanager.kbhbilleder.deranged.dk-tls
