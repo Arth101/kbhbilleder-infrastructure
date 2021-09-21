@@ -5,6 +5,9 @@ metadata:
   annotations:
     kubernetes.io/ingress.class: nginx
     cert-manager.io/cluster-issuer: letsencrypt
+    nginx.ingress.kubernetes.io/server-snippet: |
+      proxy_cache_valid 200 1d;
+      add_header X-Cache-Status $upstream_cache_status;
 spec:
   rules:
   - host: kbhbilleder.dk
