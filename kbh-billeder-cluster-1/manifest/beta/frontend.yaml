@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: beta
+  labels:
+    component: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: frontend
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        component: frontend
+    spec:
+      containers:
+      - env:
+        - name: ES_HOST
+          value: elasticsearch:9200
+        - name: ENFORCE_HTTPS
+          value: "false"
+        - name: MONGO_CONNECTION
+          value: mongodb://mongo:27017/kbh-billeder
+        - name: AUTH0_CLIENT_SECRET
+          value: Ze-a_uFIgXQlUrYmk364SDV2kyJDwfPNGlZQ5y-rAafIsE6bwlStV1xonXghWts1
+        image: eu.gcr.io/kbh-billeder/frontend:master-a68d3f9729d58a24aa8958786e3464433fbdf2ff-1421
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            httpHeaders:
+            - name: Host
+              value: beta.kbhbilleder.dk
+            path: /
+            port: http
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        name: frontend
+        ports:
+        - containerPort: 9000
+          name: http
+          protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: beta
+  labels:
+    component: frontend
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 9000
+  selector:
+    component: frontend
