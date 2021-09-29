@@ -54,3 +54,19 @@ spec:
       - name: env-volume
         secret:
           secretName: frontend-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: beta
+  labels:
+    component: frontend
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 9000
+  selector:
+    component: frontend
