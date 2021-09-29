@@ -24,6 +24,7 @@ spec:
     spec:
       containers:
       - image: eu.gcr.io/kbh-billeder/kbh-billeder:latest
+        imagePullPolicy: Always
         livenessProbe:
           failureThreshold: 3
           httpGet:
