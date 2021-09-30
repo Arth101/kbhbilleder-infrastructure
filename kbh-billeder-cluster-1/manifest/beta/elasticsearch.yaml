@@ -39,6 +39,9 @@ spec:
           value: _local_,_site_
         image: quay.io/pires/docker-elasticsearch-kubernetes:5.6.4
         name: elasticsearch
+        resources:
+          requests:
+            memory: 1500Mi
         ports:
         - containerPort: 9200
           name: http

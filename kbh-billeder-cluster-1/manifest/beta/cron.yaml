@@ -39,3 +39,6 @@ spec:
           value: 32 42 2 * * *
         image: blacklabelops/jobber:cloud
         name: cron
+        resources:
+          limits:
+            memory: 50Mi
