@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: production
+  labels:
+    component: frontend
+  annotations:
+    reloader.stakater.com/auto: "true"
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      component: frontend
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        component: frontend
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: component
+                operator: In
+                values:
+                - frontend
+            topologyKey: kubernetes.io/hostname
+      containers:
+      - env:
+        - name: NODE_ENV
+          value: production
+        - name: ENFORCE_HTTPS
+          value: "false"
+        - name: ES_HOST
+          value: elasticsearch:9200
+        - name: MONGO_CONNECTION
+          value: mongodb://mongo:27017/kbh-billeder
+        image: eu.gcr.io/kbh-billeder/frontend:production-8f92181dde87fddc3758f01059ed55ef1721ba78-1431
+        imagePullPolicy: Always
+        resources:
+          requests:
+            memory: 200Mi
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            httpHeaders:
+            - name: Host
+              value: kbhbilleder.dk
+            path: /healthz
+            port: http
+            scheme: HTTP
+          periodSeconds: 30
+          successThreshold: 1
+          timeoutSeconds: 1
+        name: frontend
+        ports:
+        - containerPort: 80
+          name: http
+          protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: production
+  labels:
+    component: frontend
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 80
+  selector:
+    component: frontend
