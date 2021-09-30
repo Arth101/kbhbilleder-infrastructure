@@ -22,6 +22,16 @@ spec:
       labels:
         component: frontend
     spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: component
+                operator: In
+                values:
+                - frontend
+            topologyKey: kubernetes.io/hostname
       containers:
       - image: eu.gcr.io/kbh-billeder/kbh-billeder:latest
         imagePullPolicy: Always
