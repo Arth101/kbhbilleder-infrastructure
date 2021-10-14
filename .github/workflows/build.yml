@@ -35,11 +35,11 @@ jobs:
         location: ${{ env.ZONE }}
 
     - name: Apply dryrun
-      if: ${{ github.ref != 'refs/heads/master' }}
+      if: ${{ github.ref != 'refs/heads/main' }}
       run: |-
         kubectl apply --dry-run=server -Rf kbh-billeder-cluster-1/manifest
 
     - name: Apply
-      if: ${{ github.ref == 'refs/heads/master' }}
+      if: ${{ github.ref == 'refs/heads/main' }}
       run: |-
         kubectl apply -Rf kbh-billeder-cluster-1/manifest
