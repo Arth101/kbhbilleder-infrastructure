@@ -33,37 +33,40 @@ spec:
                 - frontend
             topologyKey: kubernetes.io/hostname
       containers:
-      - env:
-        - name: NODE_ENV
-          value: production
-        - name: ENFORCE_HTTPS
-          value: "false"
-        - name: ES_HOST
-          value: elasticsearch:9200
-        - name: MONGO_CONNECTION
-          value: mongodb://mongo:27017/kbh-billeder
-        image: eu.gcr.io/kbh-billeder/frontend:production-8f92181dde87fddc3758f01059ed55ef1721ba78-1431
+      - image: eu.gcr.io/kbh-billeder/kbh-billeder:a84b176150ce388e481962c4fc57a27b8a269cc3
         imagePullPolicy: Always
-        resources:
-          requests:
-            memory: 200Mi
         livenessProbe:
           failureThreshold: 3
           httpGet:
-            httpHeaders:
-            - name: Host
-              value: kbhbilleder.dk
             path: /healthz
             port: http
             scheme: HTTP
-          periodSeconds: 30
+          periodSeconds: 10
           successThreshold: 1
           timeoutSeconds: 1
         name: frontend
+        resources:
+          requests:
+            memory: 200Mi
         ports:
-        - containerPort: 80
+        - containerPort: 9000
           name: http
           protocol: TCP
+        volumeMounts:
+        - name: env-volume
+          mountPath: /app/shared/.env
+          subPath: .env
+        env:
+        - name: MONGO_CONNECTION
+          value: mongodb://mongo:27017/kbh-billeder
+        - name: ES_HOST
+          value: elasticsearch:9200
+        - name: ENFORCE_HTTPS
+          value: "false"
+      volumes:
+      - name: env-volume
+        secret:
+          secretName: frontend-secret
 ---
 apiVersion: v1
 kind: Service
@@ -77,6 +80,6 @@ spec:
   - name: http
     port: 80
     protocol: TCP
-    targetPort: 80
+    targetPort: 9000
   selector:
     component: frontend
