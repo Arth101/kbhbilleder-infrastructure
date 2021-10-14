@@ -40,4 +40,4 @@ jobs:
     - name: Apply
       if: ${{ github.ref == 'refs/heads/master' }}
       run: |-
-        kubectl apply -Rf kbh-billeder-cluster-1/manifest/beta
+        kubectl apply -Rf kbh-billeder-cluster-1/manifest
