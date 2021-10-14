@@ -54,7 +54,7 @@ spec:
           protocol: TCP
         volumeMounts:
         - name: env-volume
-          mountPath: /app/.env
+          mountPath: /app/shared/.env
           subPath: .env
         env:
         - name: MONGO_CONNECTION
