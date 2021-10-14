@@ -1,7 +1,9 @@
 name: Apply infrastructure to kubernetes cluster
 
 on:
-- push
+  push:
+    tags-ignore:
+      - '*'
 
 env:
   GKE_PROJECT: kbh-billeder
