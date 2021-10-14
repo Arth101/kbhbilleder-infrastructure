@@ -1,0 +1,45 @@
+name: Apply infrastructure to kubernetes cluster
+
+on:
+  push:
+    branches:
+      - '**'
+    tags-ignore:
+      - '*'
+
+env:
+  GKE_PROJECT: kbh-billeder
+  CLUSTER_NAME: kbh-billeder-cluster-1
+  ZONE: europe-west1-b
+
+jobs:
+  apply:
+    name: Apply infrastructure
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Setup gcloud
+      uses: google-github-actions/setup-gcloud@v0.2.0
+      with:
+        service_account_key: ${{ secrets.GKE_SA_KEY }}
+        project_id: ${{ env.GKE_PROJECT }}
+
+    - name: Setup kubectl
+      uses: google-github-actions/get-gke-credentials@v0.2.1
+      with:
+        credentials: ${{ secrets.GKE_SA_KEY }}
+        cluster_name: ${{ env.CLUSTER_NAME }}
+        location: ${{ env.ZONE }}
+
+    - name: Apply dryrun
+      if: ${{ github.ref != 'refs/heads/master' }}
+      run: |-
+        kubectl apply --dry-run=server -Rf kbh-billeder-cluster-1/manifest
+
+    - name: Apply
+      if: ${{ github.ref == 'refs/heads/master' }}
+      run: |-
+        kubectl apply -Rf kbh-billeder-cluster-1/manifest
