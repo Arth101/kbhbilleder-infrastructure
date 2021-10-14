@@ -2,6 +2,8 @@ name: Apply infrastructure to kubernetes cluster
 
 on:
   push:
+    branches:
+      - '**'
     tags-ignore:
       - '*'
 
