@@ -33,7 +33,7 @@ spec:
                 - frontend
             topologyKey: kubernetes.io/hostname
       containers:
-      - image: eu.gcr.io/kbh-billeder/kbh-billeder:v1.0.1
+      - image: eu.gcr.io/kbh-billeder/kbh-billeder:v1.2.0
         imagePullPolicy: Always
         livenessProbe:
           failureThreshold: 3
