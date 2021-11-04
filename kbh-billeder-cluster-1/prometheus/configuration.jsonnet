@@ -42,7 +42,6 @@ local kp = (
       alertmanager+:: {
         name: 'main',
         replicas: 2,
-        configSecret: 'alertmanager-secret-config'
       },
       grafana+:: {
         config: { // http://docs.grafana.org/installation/configuration/
