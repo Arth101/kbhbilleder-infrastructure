@@ -21,6 +21,7 @@ spec:
           topologyKey: kubernetes.io/hostname
         weight: 100
   baseImage: quay.io/prometheus/alertmanager
+  configSecret: alertmanager-secret-config
   externalUrl: https://alertmanager.kbhbilleder.deranged.dk
   nodeSelector:
     kubernetes.io/os: linux
@@ -31,4 +32,3 @@ spec:
     runAsUser: 1000
   serviceAccountName: alertmanager-main
   version: v0.18.0
-  configSecret: 'alertmanager-secret-config'

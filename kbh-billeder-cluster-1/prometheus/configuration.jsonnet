@@ -193,6 +193,14 @@ local kp = (
         },
       }
     }
+  } + {
+    alertmanager+:: {
+      alertmanager+: {
+        spec+: {
+          configSecret: 'alertmanager-secret-config'
+        },
+      },
+    },
   }
 );
 
