@@ -63,6 +63,8 @@ spec:
           value: elasticsearch:9200
         - name: ENFORCE_HTTPS
           value: "false"
+        - name: NODE_ENV
+          value: "beta"
       volumes:
       - name: env-volume
         secret:
