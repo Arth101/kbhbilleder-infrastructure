@@ -15,7 +15,7 @@ spec:
         pathType: Prefix
         backend:
           service:
-            name: frontend
+            name: frontend-es7
             port:
               number: 80
   tls:

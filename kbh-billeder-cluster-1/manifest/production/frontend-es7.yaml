@@ -1,0 +1,87 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-es7
+  namespace: production
+  labels:
+    component: frontend-es7
+  annotations:
+    reloader.stakater.com/auto: "true"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: frontend-es7
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        component: frontend-es7
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: component
+                operator: In
+                values:
+                - frontend-es7
+            topologyKey: kubernetes.io/hostname
+      containers:
+      - image: eu.gcr.io/kbh-billeder/kbh-billeder:latest
+        imagePullPolicy: Always
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /healthz
+            port: http
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        name: frontend-es7
+        resources:
+          requests:
+            memory: 200Mi
+        ports:
+        - containerPort: 9000
+          name: http
+          protocol: TCP
+        volumeMounts:
+        - name: env-volume-es7
+          mountPath: /app/shared/.env
+          subPath: .env
+        env:
+        - name: MONGO_CONNECTION
+          value: mongodb://mongo:27017/kbh-billeder
+        - name: ES_HOST
+          value: elasticsearch7:9200
+        - name: ENFORCE_HTTPS
+          value: "false"
+        - name: NODE_ENV
+          value: "production"
+      volumes:
+      - name: env-volume-es7
+        secret:
+          secretName: frontend-es7-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-es7
+  namespace: production
+  labels:
+    component: frontend-es7
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 9000
+  selector:
+    component: frontend-es7

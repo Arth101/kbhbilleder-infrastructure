@@ -1,0 +1,77 @@
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: elasticsearch7
+  namespace: production
+  labels:
+    component: elasticsearch7
+spec:
+  replicas: 1
+  selector:
+    component: elasticsearch7
+  template:
+    metadata:
+      labels:
+        component: elasticsearch7
+    spec:
+      containers:
+      - env:
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+        - name: discovery.type
+          value: single-node
+        - name: cluster.name
+          value: kbh-billeder-es-cluster
+        - name: discovery.zen.ping.unicast.hosts
+          value: elasticsearch7
+        - name: node.master
+          value: "true"
+        - name: node.data
+          value: "true"
+        - name: network.host
+          value: _local_,_site_
+        image: docker.elastic.co/elasticsearch/elasticsearch:7.16.3
+        name: elasticsearch7
+        resources:
+          requests:
+            memory: 2000Mi
+        ports:
+        - containerPort: 9200
+          name: http
+          protocol: TCP
+        - containerPort: 9300
+          name: transport
+          protocol: TCP
+        securityContext:
+          capabilities:
+            add:
+            - IPC_LOCK
+            - SYS_RESOURCE
+          privileged: true
+        volumeMounts:
+        - mountPath: /data
+          name: es-storage-7
+      volumes:
+      - name: es-storage-7
+        gcePersistentDisk:
+          fsType: ext4
+          pdName: es-production-disk-7
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch7
+  namespace: production
+  labels:
+    component: elasticsearch7
+spec:
+  ports:
+  - name: http
+    port: 9200
+    protocol: TCP
+    targetPort: 9200
+  selector:
+    component: elasticsearch7
