@@ -31,8 +31,6 @@ spec:
           value: "true"
         - name: node.data
           value: "true"
-        - name: http.enabled
-          value: "true"
         - name: network.host
           value: _local_,_site_
         image: docker.elastic.co/elasticsearch/elasticsearch:7.16.3
