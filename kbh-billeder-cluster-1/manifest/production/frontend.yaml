@@ -33,7 +33,7 @@ spec:
                 - frontend
             topologyKey: kubernetes.io/hostname
       containers:
-      - image: eu.gcr.io/kbh-billeder/kbh-billeder:latest
+      - image: eu.gcr.io/kbh-billeder/kbh-billeder:v1.2.7-8-g2786f028
         imagePullPolicy: Always
         livenessProbe:
           failureThreshold: 3
@@ -60,7 +60,7 @@ spec:
         - name: MONGO_CONNECTION
           value: mongodb://mongo:27017/kbh-billeder
         - name: ES_HOST
-          value: elasticsearch7:9200
+          value: elasticsearch:9200
         - name: ENFORCE_HTTPS
           value: "false"
         - name: NODE_ENV
