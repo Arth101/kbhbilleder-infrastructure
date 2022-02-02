@@ -53,7 +53,7 @@ spec:
           name: http
           protocol: TCP
         volumeMounts:
-        - name: env-volume
+        - name: env-volume-es7
           mountPath: /app/shared/.env
           subPath: .env
         env:
@@ -66,7 +66,7 @@ spec:
         - name: NODE_ENV
           value: "beta"
       volumes:
-      - name: env-volume
+      - name: env-volume-es7
         secret:
           secretName: frontend-es7-secret
 ---
