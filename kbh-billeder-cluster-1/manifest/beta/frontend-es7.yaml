@@ -1,17 +1,17 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: frontend
+  name: frontend-es7
   namespace: beta
   labels:
-    component: frontend
+    component: frontend-es7
   annotations:
     reloader.stakater.com/auto: "true"
 spec:
   replicas: 1
   selector:
     matchLabels:
-      component: frontend
+      component: frontend-es7
   strategy:
     rollingUpdate:
       maxSurge: 1
@@ -20,7 +20,7 @@ spec:
   template:
     metadata:
       labels:
-        component: frontend
+        component: frontend-es7
     spec:
       affinity:
         podAntiAffinity:
@@ -30,10 +30,10 @@ spec:
               - key: component
                 operator: In
                 values:
-                - frontend
+                - frontend-es7
             topologyKey: kubernetes.io/hostname
       containers:
-      - image: eu.gcr.io/kbh-billeder/kbh-billeder:v1.3.3-1-g9a208b18
+      - image: eu.gcr.io/kbh-billeder/kbh-billeder:latest
         imagePullPolicy: Always
         livenessProbe:
           failureThreshold: 3
@@ -44,7 +44,7 @@ spec:
           periodSeconds: 10
           successThreshold: 1
           timeoutSeconds: 1
-        name: frontend
+        name: frontend-es7
         resources:
           requests:
             memory: 200Mi
@@ -68,15 +68,15 @@ spec:
       volumes:
       - name: env-volume
         secret:
-          secretName: frontend-secret
+          secretName: frontend-es7-secret
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: frontend
+  name: frontend-es7
   namespace: beta
   labels:
-    component: frontend
+    component: frontend-es7
 spec:
   ports:
   - name: http
@@ -84,4 +84,4 @@ spec:
     protocol: TCP
     targetPort: 9000
   selector:
-    component: frontend
+    component: frontend-es7
