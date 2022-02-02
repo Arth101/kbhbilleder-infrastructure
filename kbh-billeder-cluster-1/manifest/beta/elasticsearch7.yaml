@@ -15,10 +15,6 @@ spec:
         component: elasticsearch7
     spec:
       containers:
-      - command:
-        - sh
-        - -c
-        - sysctl -w vm.max_map_count=262144 && /run.sh
         env:
         - name: NAMESPACE
           valueFrom:
