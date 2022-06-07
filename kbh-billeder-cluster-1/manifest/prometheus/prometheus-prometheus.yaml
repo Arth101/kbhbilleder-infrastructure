@@ -2,6 +2,10 @@ apiVersion: monitoring.coreos.com/v1
 kind: Prometheus
 metadata:
   labels:
+    app.kubernetes.io/component: prometheus
+    app.kubernetes.io/name: prometheus
+    app.kubernetes.io/part-of: kube-prometheus
+    app.kubernetes.io/version: 2.29.1
     prometheus: k8s
   name: k8s
   namespace: monitoring
@@ -11,26 +15,37 @@ spec:
       preferredDuringSchedulingIgnoredDuringExecution:
       - podAffinityTerm:
           labelSelector:
-            matchExpressions:
-            - key: prometheus
-              operator: In
-              values:
-              - k8s
+            matchLabels:
+              app.kubernetes.io/component: prometheus
+              app.kubernetes.io/name: prometheus
+              app.kubernetes.io/part-of: kube-prometheus
+              prometheus: k8s
           namespaces:
           - monitoring
           topologyKey: kubernetes.io/hostname
         weight: 100
   alerting:
     alertmanagers:
-    - name: alertmanager-main
+    - apiVersion: v2
+      name: alertmanager-main
       namespace: monitoring
       port: web
-  baseImage: quay.io/prometheus/prometheus
+  enableFeatures: []
+  externalLabels: {}
   externalUrl: https://prometheus.kbhbilleder.deranged.dk
+  image: quay.io/prometheus/prometheus:v2.29.1
   nodeSelector:
     kubernetes.io/os: linux
+  podMetadata:
+    labels:
+      app.kubernetes.io/component: prometheus
+      app.kubernetes.io/name: prometheus
+      app.kubernetes.io/part-of: kube-prometheus
+      app.kubernetes.io/version: 2.29.1
   podMonitorNamespaceSelector: {}
   podMonitorSelector: {}
+  probeNamespaceSelector: {}
+  probeSelector: {}
   replicas: 2
   resources:
     requests:
@@ -55,4 +70,4 @@ spec:
         resources:
           requests:
             storage: 10Gi
-  version: v2.11.0
+  version: 2.29.1

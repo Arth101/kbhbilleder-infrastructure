@@ -1,44 +1,14 @@
-local k = import "ksonnet/ksonnet.beta.3/k.libsonnet";
-local secret = k.core.v1.secret;
-local pvc = k.core.v1.persistentVolumeClaim;
-local ingress = k.extensions.v1beta1.ingress;
-local ingressTls = ingress.mixin.spec.tlsType;
-local ingressRule = ingress.mixin.spec.rulesType;
-local httpIngressPath = ingressRule.mixin.http.pathsType;
-
-local removeCpuLimit(container) = (
-  container {
-    resources+: {
-      limits: {
-        memory: container.resources.limits.memory,
-      }
-    }
-  }
-);
-
-local addNamespaceToRule(groups) = (
-  std.map(function(group)
-    if (group.name == "kubernetes-resources") then
-      local rules = std.map(function(rule)
-        if (rule.alert == "CPUThrottlingHigh") then
-          rule { expr: "sum(increase(container_cpu_cfs_throttled_periods_total{container!='', namespace!='kube-system'}[5m])) by (container, pod, namespace) / sum(increase(container_cpu_cfs_periods_total{}[5m])) by (container, pod, namespace) > ( 25 / 100 )" }
-        else
-          rule
-      , group.rules);
-      group { rules: rules }
-    else
-      group
-  , groups)
-);
-
-local kp = (
-  (import "kube-prometheus/kube-prometheus.libsonnet") +
-  (import "kube-prometheus/kube-prometheus-anti-affinity.libsonnet") +
-  (import "kube-prometheus/kube-prometheus-managed-cluster.libsonnet") +
-  (import "kube-prometheus/kube-prometheus-all-namespaces.libsonnet") +
+local kp =
+  (import "kube-prometheus/main.libsonnet") +
+  (import "kube-prometheus/addons/anti-affinity.libsonnet") +
+  (import "kube-prometheus/addons/managed-cluster.libsonnet") +
+  (import "kube-prometheus/addons/all-namespaces.libsonnet") +
+  (import "kube-prometheus/addons/strip-limits.libsonnet") +
   {
-    _config+:: {
-      namespace: "monitoring",
+    values+:: {
+      common+: {
+        namespace: "monitoring",
+      },
       alertmanager+:: {
         name: "main",
         replicas: 2,
@@ -52,15 +22,31 @@ local kp = (
             },
           },
         },
-        datasources+: [{
-          name: "Loki",
-          type: "loki",
-          access: "proxy",
-          url: "http://loki-release-1-headless:3100",
-          jsonData: {
-            maxLines: 5000
+        datasources+: [
+          {
+            name: "Loki",
+            type: "loki",
+            access: "proxy",
+            url: "http://loki-release-1.monitoring.svc:3100",
+            jsonData: {
+              maxLines: 5000
+            }
+          },
+          {
+            access: "proxy",
+            editable: false,
+            name: "prometheus",
+            orgId: 1,
+            type: "prometheus",
+            url: "http://prometheus-k8s.monitoring.svc:9090",
+            version: 1
           }
-        }]
+        ]
+      },
+      blackboxExporter+:: {
+        resources: {
+          requests: { cpu: '10m', memory: '20Mi' },
+        },
       },
     },
     prometheus+:: {
@@ -71,18 +57,17 @@ local kp = (
           ruleNamespaceSelector: { },
           retention: "168h",
           storage: {  // https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#storagespec
-            volumeClaimTemplate:  // (same link as above where the "pvc" variable is defined)
-              pvc.new() +
-              pvc.mixin.spec.withAccessModes("ReadWriteOnce") +
-              pvc.mixin.spec.resources.withRequests({ storage: "10Gi" }),
+            volumeClaimTemplate: {  // https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.11/#persistentvolumeclaim-v1-core (defines variable named 'spec' of type 'PersistentVolumeClaimSpec')
+              apiVersion: 'v1',
+              kind: 'PersistentVolumeClaim',
+              spec: {
+                accessModes: ['ReadWriteOnce'],
+                resources: { requests: { storage: '10Gi' } },
+              },
+            },
           },
         },
       },
-      rules+: {
-        spec+: {
-          groups: addNamespaceToRule(super.groups)
-        }
-      }
     },
     alertmanager+:: {
       alertmanager+: {
@@ -92,106 +77,118 @@ local kp = (
       },
     },
     ingress+:: {
-      "alertmanager-main":
-        ingress.new() +
-        ingress.mixin.metadata.withName("alertmanager-main") +
-        ingress.mixin.metadata.withNamespace($._config.namespace) +
-        ingress.mixin.metadata.withAnnotations({
-          "nginx.ingress.kubernetes.io/auth-type": "basic",
-          "nginx.ingress.kubernetes.io/auth-secret": "basic-auth",
-          "nginx.ingress.kubernetes.io/auth-realm": "Authentication Required",
-          "kubernetes.io/ingress.class": "nginx",
-          "cert-manager.io/cluster-issuer": "letsencrypt",
-        }) +
-        ingress.mixin.spec.withRules(
-          ingressRule.new() +
-          ingressRule.withHost("alertmanager.kbhbilleder.deranged.dk") +
-          ingressRule.mixin.http.withPaths(
-            httpIngressPath.new() +
-            httpIngressPath.mixin.backend.withServiceName("alertmanager-main") +
-            httpIngressPath.mixin.backend.withServicePort("web")
-          ),
-        ) +
-        ingress.mixin.spec.withTls(
-          ingressTls.new() +
-          ingressTls.withSecretName("alertmanager.kbhbilleder.deranged.dk-tls") +
-          ingressTls.withHosts(["alertmanager.kbhbilleder.deranged.dk"]),
-        ),
-      grafana:
-        ingress.new() +
-        ingress.mixin.metadata.withName("grafana") +
-        ingress.mixin.metadata.withNamespace($._config.namespace) +
-        ingress.mixin.metadata.withAnnotations({
-          "nginx.ingress.kubernetes.io/auth-type": "basic",
-          "nginx.ingress.kubernetes.io/auth-secret": "basic-auth",
-          "nginx.ingress.kubernetes.io/auth-realm": "Authentication Required",
-          "kubernetes.io/ingress.class": "nginx",
-          "cert-manager.io/cluster-issuer": "letsencrypt",
-        }) +
-        ingress.mixin.spec.withRules(
-          ingressRule.new() +
-          ingressRule.withHost("grafana.kbhbilleder.deranged.dk") +
-          ingressRule.mixin.http.withPaths(
-            httpIngressPath.new() +
-            httpIngressPath.mixin.backend.withServiceName("grafana") +
-            httpIngressPath.mixin.backend.withServicePort("http")
-          ),
-        ) +
-        ingress.mixin.spec.withTls(
-          ingressTls.new() +
-          ingressTls.withSecretName("grafana.kbhbilleder.deranged.dk-tls") +
-          ingressTls.withHosts(["grafana.kbhbilleder.deranged.dk"]),
-        ),
-      "prometheus-k8s":
-        ingress.new() +
-        ingress.mixin.metadata.withName("prometheus-k8s") +
-        ingress.mixin.metadata.withNamespace($._config.namespace) +
-        ingress.mixin.metadata.withAnnotations({
-          "nginx.ingress.kubernetes.io/auth-type": "basic",
-          "nginx.ingress.kubernetes.io/auth-secret": "basic-auth",
-          "nginx.ingress.kubernetes.io/auth-realm": "Authentication Required",
-          "kubernetes.io/ingress.class": "nginx",
-          "cert-manager.io/cluster-issuer": "letsencrypt",
-        }) +
-        ingress.mixin.spec.withRules(
-          ingressRule.new() +
-          ingressRule.withHost("prometheus.kbhbilleder.deranged.dk") +
-          ingressRule.mixin.http.withPaths(
-            httpIngressPath.new() +
-            httpIngressPath.mixin.backend.withServiceName("prometheus-k8s") +
-            httpIngressPath.mixin.backend.withServicePort("web")
-          ),
-        ) +
-        ingress.mixin.spec.withTls(
-          ingressTls.new() +
-          ingressTls.withSecretName("prometheus.kbhbilleder.deranged.dk-tls") +
-          ingressTls.withHosts(["prometheus.kbhbilleder.deranged.dk"]),
-        ),
-    },
-  } + {
-    nodeExporter+:: {
-      daemonset+: {
-        spec+: {
-          template+: {
-            spec+: {
-              containers: std.map(removeCpuLimit, super.containers),
-            },
+      "alertmanager-main": {
+        apiVersion: 'networking.k8s.io/v1',
+        kind: 'Ingress',
+        metadata: {
+          name: "alertmanager-main",
+          namespace: $.values.common.namespace,
+          annotations: {
+            "nginx.ingress.kubernetes.io/auth-url": "https://oauth2-proxy.eu-1.deranged.dk/oauth2/auth",
+            "nginx.ingress.kubernetes.io/auth-signin": "https://oauth2-proxy.eu-1.deranged.dk/oauth2/start?rd=$escaped_request_uri",
+            "kubernetes.io/ingress.class": "nginx",
+            "cert-manager.io/cluster-issuer": "letsencrypt",
           },
+        },
+        spec: {
+          rules: [{
+            host: "alertmanager.kbhbilleder.deranged.dk",
+            http: {
+              paths: [{
+                path: "/",
+                pathType: "Prefix",
+                backend: {
+                  service: {
+                    name: $.alertmanager.service.metadata.name,
+                    port: {
+                      name: "web",
+                    },
+                  },
+                },
+              }],
+            },
+          }],
+          tls: [{
+            hosts: ["alertmanager.kbhbilleder.deranged.dk"],
+            secretName: "alertmanager.kbhbilleder.deranged.dk-tls",
+          }],
+        },
+      },
+      grafana: {
+        apiVersion: 'networking.k8s.io/v1',
+        kind: 'Ingress',
+        metadata: {
+          name: "grafana",
+          namespace: $.values.common.namespace,
+          annotations: {
+            "nginx.ingress.kubernetes.io/auth-url": "https://oauth2-proxy.eu-1.deranged.dk/oauth2/auth",
+            "nginx.ingress.kubernetes.io/auth-signin": "https://oauth2-proxy.eu-1.deranged.dk/oauth2/start?rd=$escaped_request_uri",
+            "kubernetes.io/ingress.class": "nginx",
+            "cert-manager.io/cluster-issuer": "letsencrypt",
+          },
+        },
+        spec: {
+          rules: [{
+            host: "grafana.kbhbilleder.deranged.dk",
+            http: {
+              paths: [{
+                path: "/",
+                pathType: "Prefix",
+                backend: {
+                  service: {
+                    name: $.grafana.service.metadata.name,
+                    port: {
+                      name: "http",
+                    },
+                  },
+                },
+              }],
+            },
+          }],
+          tls: [{
+            hosts: ["grafana.kbhbilleder.deranged.dk"],
+            secretName: "grafana.kbhbilleder.deranged.dk-tls",
+          }],
+        },
+      },
+      "prometheus-k8s": {
+        apiVersion: 'networking.k8s.io/v1',
+        kind: 'Ingress',
+        metadata: {
+          name: "prometheus-k8s",
+          namespace: $.values.common.namespace,
+          annotations: {
+            "nginx.ingress.kubernetes.io/auth-url": "https://oauth2-proxy.eu-1.deranged.dk/oauth2/auth",
+            "nginx.ingress.kubernetes.io/auth-signin": "https://oauth2-proxy.eu-1.deranged.dk/oauth2/start?rd=$escaped_request_uri",
+            "kubernetes.io/ingress.class": "nginx",
+            "cert-manager.io/cluster-issuer": "letsencrypt",
+          },
+        },
+        spec: {
+          rules: [{
+            host: "prometheus.kbhbilleder.deranged.dk",
+            http: {
+              paths: [{
+                path: "/",
+                pathType: "Prefix",
+                backend: {
+                  service: {
+                    name: $.prometheus.service.metadata.name,
+                    port: {
+                      name: "web",
+                    },
+                  },
+                },
+              }],
+            },
+          }],
+          tls: [{
+            hosts: ["prometheus.kbhbilleder.deranged.dk"],
+            secretName: "prometheus.kbhbilleder.deranged.dk-tls",
+          }],
         },
       },
     },
-  } + {
-    kubeStateMetrics+:: {
-      deployment+: {
-        spec+: {
-          template+: {
-            spec+: {
-              containers: std.map(removeCpuLimit, super.containers),
-            },
-          },
-        },
-      }
-    }
   } + {
     alertmanager+:: {
       alertmanager+: {
@@ -200,21 +197,23 @@ local kp = (
         },
       },
     },
-  }
-);
+  };
 
 { ["setup/0namespace-" + name]: kp.kubePrometheus[name] for name in std.objectFields(kp.kubePrometheus) } +
 {
   ["setup/prometheus-operator-" + name]: kp.prometheusOperator[name]
-  for name in std.filter((function(name) name != "serviceMonitor"), std.objectFields(kp.prometheusOperator))
+  for name in std.filter((function(name) name != "serviceMonitor" && name != "prometheusRule"), std.objectFields(kp.prometheusOperator))
 } +
-
-// serviceMonitor is separated so that it can be created after the CRDs are ready
+// serviceMonitor and prometheusRule are separated so that they can be created after the CRDs are ready
 { "prometheus-operator-serviceMonitor": kp.prometheusOperator.serviceMonitor } +
-{ ["node-exporter-" + name]: kp.nodeExporter[name] for name in std.objectFields(kp.nodeExporter) } +
-{ ["kube-state-metrics-" + name]: kp.kubeStateMetrics[name] for name in std.objectFields(kp.kubeStateMetrics) } +
+{ "prometheus-operator-prometheusRule": kp.prometheusOperator.prometheusRule } +
+{ "kube-prometheus-prometheusRule": kp.kubePrometheus.prometheusRule } +
 { ["alertmanager-" + name]: kp.alertmanager[name] for name in std.objectFields(kp.alertmanager) } +
+{ ["blackbox-exporter-" + name]: kp.blackboxExporter[name] for name in std.objectFields(kp.blackboxExporter) } +
+{ ["grafana-" + name]: kp.grafana[name] for name in std.objectFields(kp.grafana) } +
+{ ["kube-state-metrics-" + name]: kp.kubeStateMetrics[name] for name in std.objectFields(kp.kubeStateMetrics) } +
+{ ["kubernetes-" + name]: kp.kubernetesControlPlane[name] for name in std.objectFields(kp.kubernetesControlPlane) }
+{ ["node-exporter-" + name]: kp.nodeExporter[name] for name in std.objectFields(kp.nodeExporter) } +
 { ["prometheus-" + name]: kp.prometheus[name] for name in std.objectFields(kp.prometheus) } +
 { ["prometheus-adapter-" + name]: kp.prometheusAdapter[name] for name in std.objectFields(kp.prometheusAdapter) } +
-{ ["grafana-" + name]: kp.grafana[name] for name in std.objectFields(kp.grafana) } +
 { ["ingress-" + name]: kp.ingress[name] for name in std.objectFields(kp.ingress) }
