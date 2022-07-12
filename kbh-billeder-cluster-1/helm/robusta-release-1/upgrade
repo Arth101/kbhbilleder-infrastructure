@@ -2,6 +2,6 @@ helm repo add robusta https://robusta-charts.storage.googleapis.com
 
 helm upgrade robusta-release-1 robusta/robusta \
   --install \
-  --version 0.9.12 \
+  --version 0.9.17 \
   --namespace robusta \
   -f values.yaml
