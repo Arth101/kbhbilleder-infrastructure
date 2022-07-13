@@ -27,7 +27,7 @@ local kp =
             name: "Loki",
             type: "loki",
             access: "proxy",
-            url: "http://loki-release-1.monitoring.svc:3100",
+            url: "http://loki-release-3-grafana-loki-gateway.monitoring.svc",
             jsonData: {
               maxLines: 5000
             }
@@ -35,7 +35,7 @@ local kp =
           {
             access: "proxy",
             editable: false,
-            name: "prometheus",
+            name: "Prometheus",
             orgId: 1,
             type: "prometheus",
             url: "http://prometheus-k8s.monitoring.svc:9090",
