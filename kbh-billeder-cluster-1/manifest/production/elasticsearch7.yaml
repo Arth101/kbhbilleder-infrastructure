@@ -52,7 +52,7 @@ spec:
             - SYS_RESOURCE
           privileged: true
         volumeMounts:
-        - mountPath: /data
+        - mountPath: /usr/share/elasticsearch/data
           name: es-storage-7
       volumes:
       - name: es-storage-7
